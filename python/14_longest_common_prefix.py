@@ -5,28 +5,16 @@ class Solution:
         if len(strs) == 1:
             return strs[0]
         
-        i = 0
         n = len(strs)
-        sl = float('inf')
-        for i in range(n):
-            if len(strs[i]) < sl:
-                sl = len(strs[i])
-        first = 0
-        for i in range(n):
-            if not len(strs[i]) == 0:
-                first = i
-                break
-        def sameatindex(idx):
-            f = strs[first][idx]
-            for i in range(1, n):
-                if strs[i][idx] != strs[i-1][idx]:
-                    return False
-            return True
-        
-        i = first
-        res = ""
-        while i < sl and sameatindex(i):
-            res += strs[first][i]
-            i += 1
+        min_len = min(len(s) for s in strs)
 
-        return res
+        idx = 0
+        while idx < min_len:
+            # define a reference charatcer
+            ref_char = strs[0][idx]
+            for j in range(1, n):
+                if not strs[j][idx] == ref_char:
+                    return strs[0][:idx]
+            idx += 1
+        
+        return strs[0][:min_len]
