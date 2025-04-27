@@ -1,21 +1,19 @@
 class Solution:
     def firstMissingPositive(self, nums: List[int]) -> int:
         n = len(nums)
-        # filter elements
+
         for i in range(n):
             if nums[i] <= 0:
-                nums[i] = n + 1
+                nums[i] = n+1
         
         for i in range(n):
-            # nums[i] will exist in an ideal array of size n with range [1...n]. so we just mark the index as negative, iff not marked already
-            idx = abs(nums[i]) - 1
-            if idx < n and nums[idx] > 0:
-                nums[idx] = -nums[idx]
+            ideal_index = abs(nums[i]) - 1
+            if ideal_index < n and nums[ideal_index] > 0:
+                nums[ideal_index] = -nums[ideal_index] # remove from contention
         
-        # finally, just check for any integers not makred. 1 + that integer is the answer
         for i in range(n):
             if nums[i] > 0:
+                # nobody has marked the ith index to be negative so the value i which would be present in the ideal array [1...n] is the answer (technically i+1 because we want the integer itself and i is the index)
                 return i + 1
         
-        # if everything is negative, n + 1 is the answer
         return n+1
