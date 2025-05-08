@@ -1,27 +1,34 @@
 class Node:
-    def __init__(self, key=-1, val=-1):
+    def __init__(self, key: int = -1, val: int = -1, next=None, prev=None):
         self.key = key
         self.val = val
-        self.next = None
-        self.prev = None
-
+        self.next = next
+        self.prev = prev
+    
 class DLL:
     def __init__(self):
         self.head = Node()
         self.tail = Node()
         self.head.next = self.tail
         self.tail.prev = self.head
+
+    def first(self):
+        return self.head.next
     
+    def last(self):
+        return self.tail.prev
+
+    def empty(self):
+        return self.head.next == self.tail and self.tail.prev == self.head
+
     def append(self, node):
         last = self.tail.prev
         last.next = node
-        node.prev = last
-        
         node.next = self.tail
+        node.prev = last
         self.tail.prev = node
     
-    @staticmethod
-    def delete(node):
+    def delete(self, node):
         before = node.prev
         after = node.next
 
@@ -31,68 +38,65 @@ class DLL:
 class LFUCache:
 
     def __init__(self, capacity: int):
-        self.cache = {}
-        self.cap = capacity
-        self.freqmap = defaultdict(int)
-        self.freqcounts = defaultdict(int)
-        self.freqdll = defaultdict(DLL)
+        self.memo = {}
+        self.freqs = Counter()
         self.minf = 1
+        self.freqdll = defaultdict(DLL)
+        self.cap = capacity
 
     def get(self, key: int) -> int:
-        if key not in self.cache:
+        if key not in self.memo:
             return -1
-        
-        node = self.cache[key]
-        self.freqcounts[self.freqmap[key]] -= 1
-        if self.freqcounts[self.freqmap[key]] <= 0:
-            del self.freqcounts[self.freqmap[key]]
-        
-        DLL.delete(node)
+        # print(f"at get({key})")
+        node = self.memo[key]
+        oldf = self.freqs[key]
+        self.freqs[key] += 1
+        newf = self.freqs[key]
+        # print(f"\tgot node with val {node.val}, oldf {oldf} and newf {newf}")
 
-        if self.minf == self.freqmap[key] and self.freqcounts[self.freqmap[key]] == 0:
+        self.freqdll[oldf].delete(node)
+        self.freqdll[newf].append(node)
+
+        if self.freqdll[oldf].empty() and oldf == self.minf:
             self.minf += 1
-        
-        self.freqmap[key] += 1
-        self.freqcounts[self.freqmap[key]] += 1
-        self.freqdll[self.freqmap[key]].append(node)
+
         return node.val
 
     def put(self, key: int, value: int) -> None:
         if self.cap == 0:
             return
         
-        if key in self.cache:
-            node = self.cache[key]
-            DLL.delete(node)
-            self.freqcounts[self.freqmap[key]] -= 1
-            if self.freqcounts[self.freqmap[key]] <= 0:
-                del self.freqcounts[self.freqmap[key]]
-            
-            if self.minf == self.freqmap[key] and self.freqcounts[self.freqmap[key]] == 0:
-                self.minf += 1
-            
-            self.freqmap[key] += 1
-            self.freqcounts[self.freqmap[key]] += 1
-            self.freqdll[self.freqmap[key]].append(node)
+        if key in self.memo:
+            # print(f"at put({key}, {value}) where {key} is in the memo")
+            node = self.memo[key]
             node.val = value
+            oldf = self.freqs[key]
+            self.freqs[key] += 1
+            newf = self.freqs[key]
+
+            self.freqdll[oldf].delete(node)
+            self.freqdll[newf].append(node)
+
+            if self.freqdll[oldf].empty() and self.minf == oldf:
+                self.minf += 1
         else:
+            # print(f"at put({key},{value}) where {key} is not in the memo")
             node = Node(key, value)
-            self.cache[key] = node
-            if len(self.cache) > self.cap:
-                # time to evict
-                dll = self.freqdll[self.minf]
-                first = dll.head.next
-                DLL.delete(first)
-                del self.cache[first.key]
-                self.freqcounts[self.freqmap[first.key]] -= 1
-                if self.freqcounts[self.freqmap[first.key]] <= 0:
-                    del self.freqcounts[self.freqmap[first.key]]
-                del self.freqmap[first.key]
+            self.memo[key] = node
+            if len(self.memo) > self.cap:
+                minnode = self.freqdll[self.minf].first()
+                self.freqdll[self.minf].delete(minnode)
+                self.freqs[minnode.key] -= 1
+                if self.freqs[minnode.key] <= 0:
+                    del self.freqs[minnode.key]
+                del self.memo[minnode.key]
             
             self.minf = 1
-            self.freqmap[key] = 1
-            self.freqcounts[1] += 1
+            self.freqs[key] += 1
             self.freqdll[1].append(node)
+
+
+
 
 # Your LFUCache object will be instantiated and called as such:
 # obj = LFUCache(capacity)
